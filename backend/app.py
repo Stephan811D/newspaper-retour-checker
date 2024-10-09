@@ -1,5 +1,6 @@
 from flask import Flask, request
 from flask_restx import Api, Resource, reqparse
+from flask_cors import CORS, cross_origin
 import camelot
 import os
 import werkzeug
@@ -9,6 +10,9 @@ import pdfplumber
 werkzeug.cached_property = werkzeug.utils.cached_property
 
 app = Flask(__name__)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
 api = Api(app, version='1.0', title='PDF-Tabellenextraktions-API',
           description='Eine API zur Analyse von PDF-Dateien und Extraktion von Tabellen')
 
@@ -22,6 +26,7 @@ upload_parser.add_argument('file', location='files', type=werkzeug.datastructure
 @ns.expect(upload_parser)
 class UploadPDF(Resource):
     @ns.doc('upload_pdf')
+    @cross_origin()
     @ns.response(200, 'Erfolg')
     @ns.response(400, 'Fehlerhafte Eingabe')
     def post(self):

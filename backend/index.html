@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Upload and Analysis</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">PDF Analysis App</a>
+    </div>
+  </nav>
+
+  <div class="container mt-5">
+    <div id="app">
+      <div id="step-1" class="step" style="display: block;">
+        <div class="mb-3">
+          <button class="btn btn-primary" onclick="uploadPdf(1)">Upload PDF for Step 1</button>
+        </div>
+        <div id="pdf-display-1"></div>
+      </div>
+
+      <div id="step-2" class="step" style="display: none;">
+        <div class="mb-3">
+          <button class="btn btn-primary" onclick="uploadPdf(2)">Upload PDF for Step 2</button>
+        </div>
+        <div id="pdf-display-2"></div>
+      </div>
+
+      <div id="step-3" class="step" style="display: none;">
+        <table class="table table-bordered">
+          <thead id="table-headers"></thead>
+          <tbody id="table-content"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <button class="btn btn-secondary" onclick="goToStep(currentStep - 1)" id="previous-button" style="display: none;">Previous Step</button>
+        <button class="btn btn-secondary" onclick="goToStep(currentStep + 1)" id="next-button">Next Step</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-light text-center text-lg-start mt-auto">
+    <div class="container p-4">
+      <p class="text-center">&copy; 2024 PDF Analysis App. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    let currentStep = 1;
+    let pdfData = [null, null];
+    let tableData = [[], []];
+
+    function uploadPdf(step) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/pdf';
+      input.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          try {
+            const formData = new FormData();
+            formData.append('pdf', file);
+            const response = await axios.post('http://localhost:3000/upload', formData, {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+            pdfData[step - 1] = URL.createObjectURL(file);
+            tableData[step - 1] = response.data.content;
+            displayPdf(step);
+          } catch (error) {
+            console.error('Error uploading PDF:', error);
+          }
+        }
+      };
+      input.click();
+    }
+
+    function displayPdf(step) {
+      const pdfDisplay = document.getElementById(`pdf-display-${step}`);
+      pdfDisplay.innerHTML = `<iframe src="${pdfData[step - 1]}" width="100%" height="600px"></iframe>`;
+    }
+
+    function goToStep(step) {
+      if (step < 1 || step > 3) return;
+
+      document.getElementById(`step-${currentStep}`).style.display = 'none';
+      currentStep = step;
+      document.getElementById(`step-${currentStep}`).style.display = 'block';
+
+      document.getElementById('previous-button').style.display = currentStep > 1 ? 'inline-block' : 'none';
+      document.getElementById('next-button').style.display = currentStep < 3 ? 'inline-block' : 'none';
+
+      if (currentStep === 3) {
+        displayTableData();
+      }
+    }
+
+    function displayTableData() {
+      const tableHeaders = document.getElementById('table-headers');
+      const tableContent = document.getElementById('table-content');
+
+      tableHeaders.innerHTML = '';
+      tableContent.innerHTML = '';
+
+      if (tableData[0].length > 0) {
+        const headers = Object.keys(tableData[0][0]);
+        const headerRow = document.createElement('tr');
+        headers.forEach(header => {
+          const th = document.createElement('th');
+          th.textContent = header;
+          headerRow.appendChild(th);
+        });
+        tableHeaders.appendChild(headerRow);
+      }
+
+      const combinedData = [...tableData[0], ...tableData[1]];
+      combinedData.forEach(row => {
+        const rowElement = document.createElement('tr');
+        Object.values(row).forEach(value => {
+          const td = document.createElement('td');
+          td.textContent = value;
+          rowElement.appendChild(td);
+        });
+        tableContent.appendChild(rowElement);
+      });
+    }
+  </script>
+</body>
+</html>
